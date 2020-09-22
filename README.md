@@ -1,15 +1,14 @@
-# backend_flask
+# Flask Dependency
 ![Python enviornment](backend.png)
 
-## Dependencies installed
+## Virtual enviornment
+activate your virtualenv, Used anaconda interface to create custom made enviornment
 
-1. flask
-2. flask-cors
-3. flask-json
-4. pandas
-4. xlrd
+## Install Dependencies
+pip install -r requirements.txt 
 
-Used anaconda custom made enviornment to install the dependencies and ran the file using python backend_elucidata.py
+## Run the file
+python backend_elucidata.py
 
 
 This will run at 5000 port. Proxy used at frontend side to send request at 4200 port.
