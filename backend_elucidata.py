@@ -14,35 +14,22 @@ app.config['FILE_UPLOAD'] = os.path.join(os.getcwd(),'uploads')
 app.config['FILE_DOWNLOAD'] = os.path.join(os.getcwd(),'downloads')
 app.config['ALLOWED_EXTENTIONS'] = ['XLSX']
 
-
-def find(name, path):
-    for root, dirs, files in os.walk(path):
-        if name in files:
-            return os.path.join(root, name)
-    return "";
-def allowedExt(image):
-    if '.' not in image:
-        return False
-    ext = image.split('.')[-1];
-    if (ext.upper() not in app.config['ALLOWED_EXTENTIONS']):
-        return False
-    return True
-
-
 @app.route('/api/upload', methods = ["POST"])
 def uploadController():
     if request.method == 'POST':
         if (request.files):
-            image = request.files['file']
-            filename = image.filename
+            incomingFile = request.files['file']
+            filename = incomingFile.filename
             if (not allowedExt(filename)):
                 return Response("Wrong type of file found", 422);
             s = str(uuid.uuid4()) + '.xlsx'
-            image.save(os.path.join(app.config['FILE_UPLOAD'], s))
+            incomingFile.save(os.path.join(app.config['FILE_UPLOAD'], s))
             print("image saved")
             return  jsonify(message = "upload completed", filename = s)
 
     return jsonify(message = "upload not completed")
+
+
 
 @app.route('/api/taskOne', methods = ["GET"])
 def taskOneController():
@@ -59,22 +46,10 @@ def taskOneController():
         originalDf = pd.read_excel(path)
         if ('Accepted Compound ID' not in originalDf.columns):
             return Response("This file has no \'Accepted Compound ID\' column name. Please check your file", 423)
-        filtered_pc_originalDf = originalDf[originalDf['Accepted Compound ID'].str.contains(".*[_ ]PC$", na = False)]
-        filtered_lpc_originalDf = originalDf[originalDf['Accepted Compound ID'].str.contains(".*[_ ]LPC$", na = False)]
-        filtered_plasmalogen_originalDf = originalDf[originalDf['Accepted Compound ID'].str.contains(".*[_ ]plasmalogen$", na = False)]
 
-        filtered_pc_originalDf.to_excel(os.path.join(app.config['FILE_DOWNLOAD'], 'pcDataFrame_' + filename), index = False)
-        filtered_lpc_originalDf.to_excel(os.path.join(app.config['FILE_DOWNLOAD'], 'lpcDataFrame_' + filename), index = False)
-        filtered_plasmalogen_originalDf.to_excel(os.path.join(app.config['FILE_DOWNLOAD'], 'plasmalogenDataFrame_' + filename), index = False)
-        zipf = zipfile.ZipFile('taskOneResponse.zip','w', zipfile.ZIP_DEFLATED)
-        zipf.write(os.path.join(app.config['FILE_DOWNLOAD'], 'pcDataFrame_' + filename))
-        zipf.write(os.path.join(app.config['FILE_DOWNLOAD'], 'pcDataFrame_' + filename))
-        zipf.write(os.path.join(app.config['FILE_DOWNLOAD'], 'plasmalogenDataFrame_' + filename))
-        zipf.close()
-        return send_file('taskOneResponse.zip',
-                mimetype = 'zip',
-                attachment_filename= 'taskOneResponse.zip',
-                as_attachment = True)            
+        getChildDataFrames(originalDf, filename);
+        return makeZip(list({'pcDataFrame_' + filename, 'lpcDataFrame_' + filename, 'plasmalogenDataFrame_' + filename}), 1)        
+                    
     # return jsonify(message = "upload not completed")
 
 @app.route('/api/taskTwo', methods = ["GET"])
@@ -94,13 +69,8 @@ def taskTwoController():
             return Response("This file has no \'Retention time (min)\' column name. Please check your file", 423)
         originalDf['Retention Time Roundoff (in mins)'] = originalDf['Retention time (min)'].round()
         originalDf.to_excel(os.path.join(app.config['FILE_DOWNLOAD'], 'augmentedRetentionDataFrame_' + filename), index = False)
-        zipf = zipfile.ZipFile('taskTwoResponse.zip','w', zipfile.ZIP_DEFLATED)
-        zipf.write(os.path.join(app.config['FILE_DOWNLOAD'], 'augmentedRetentionDataFrame_' + filename))
-        zipf.close()
-        return send_file('taskTwoResponse.zip',
-                mimetype = 'zip',
-                attachment_filename= 'taskTwoResponse.zip',
-                as_attachment = True)
+
+        return makeZip(list({'augmentedRetentionDataFrame_' + filename}), 2)  
     # return "taskTwo completed"
 
 
@@ -128,18 +98,54 @@ def taskThreeController():
             index += 1
 
         meanDf.to_excel(os.path.join(app.config['FILE_DOWNLOAD'], 'meanDfDataFrame_' + filename), index = False)
-        zipf = zipfile.ZipFile('taskThreeResponse.zip','w', zipfile.ZIP_DEFLATED)
-        zipf.write(os.path.join(app.config['FILE_DOWNLOAD'], 'meanDfDataFrame_' + filename))
-        zipf.close()
-        return send_file('taskThreeResponse.zip',
-                mimetype = 'zip',
-                attachment_filename= 'taskThreeResponse.zip',
-                as_attachment = True)
+
+        return makeZip(list({'meanDfDataFrame_' + filename}), 3) 
         
 
 @app.route('/api/')
 def default():
     return "default behaviour"
+
+def find(name, path):
+    for root, dirs, files in os.walk(path):
+        if name in files:
+            return os.path.join(root, name)
+    return "";
+def allowedExt(image):
+    if '.' not in image:
+        return False
+    ext = image.split('.')[-1];
+    if (ext.upper() not in app.config['ALLOWED_EXTENTIONS']):
+        return False
+    return True
+def getChildDataFrames(originalDf, filename):
+    filtered_pc_originalDf = originalDf[originalDf['Accepted Compound ID'].str.contains(".*[_ ]PC$", na = False)]
+    filtered_lpc_originalDf = originalDf[originalDf['Accepted Compound ID'].str.contains(".*[_ ]LPC$", na = False)]
+    filtered_plasmalogen_originalDf = originalDf[originalDf['Accepted Compound ID'].str.contains(".*[_ ]plasmalogen$", na = False)]
+
+    filtered_pc_originalDf.to_excel(os.path.join(app.config['FILE_DOWNLOAD'], 'pcDataFrame_' + filename), index = False)
+    filtered_lpc_originalDf.to_excel(os.path.join(app.config['FILE_DOWNLOAD'], 'lpcDataFrame_' + filename), index = False)
+    filtered_plasmalogen_originalDf.to_excel(os.path.join(app.config['FILE_DOWNLOAD'], 'plasmalogenDataFrame_' + filename), index = False)
+    
+def makeZip(contentList, id):
+    name = "";
+    if (id == 1):
+        name = "taskOneResponse.zip"
+    elif (id == 2):
+        name = "taskTwoResponse.zip"
+    elif (id == 3):
+        name = "taskThreeResponse.zip"
+    
+    zipf = zipfile.ZipFile(name,'w', zipfile.ZIP_DEFLATED)
+    for file in contentList:
+        zipf.write(os.path.join(app.config['FILE_DOWNLOAD'], file))
+    zipf.close()
+    return send_file(name,
+                mimetype = 'zip',
+                attachment_filename= name,
+                as_attachment = True) 
+
+
 if __name__ == "__main__":
     if (not os.path.isdir(app.config['FILE_DOWNLOAD'])):
         os.mkdir(app.config['FILE_DOWNLOAD'])
