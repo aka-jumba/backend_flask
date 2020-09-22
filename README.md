@@ -1,4 +1,4 @@
-# Flask Dependency
+# Flask Backend
 ![Python enviornment](backend.png)
 
 ## Virtual enviornment
