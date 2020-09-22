@@ -14,6 +14,12 @@ app.config['FILE_UPLOAD'] = os.path.join(os.getcwd(),'uploads')
 app.config['FILE_DOWNLOAD'] = os.path.join(os.getcwd(),'downloads')
 app.config['ALLOWED_EXTENTIONS'] = ['XLSX']
 
+'''
+    in this task we store the uploaded file in the uploads folder
+
+    intput: file excel sheet expected
+    returns: json of response
+'''
 @app.route('/api/upload', methods = ["POST"])
 def uploadController():
     if request.method == 'POST':
@@ -29,7 +35,12 @@ def uploadController():
 
     return jsonify(message = "upload not completed")
 
+'''
+    in this task we find three dataset children based on given constraint
 
+    intput: file name as query parameter
+    returns: zipped excel file of the children datasets formed
+'''
 
 @app.route('/api/taskOne', methods = ["GET"])
 def taskOneController():
@@ -52,6 +63,12 @@ def taskOneController():
                     
     # return jsonify(message = "upload not completed")
 
+'''
+    in this task we round off the retention value
+
+    intput: file name as query parameter
+    returns: zipped excel file of augmented dataset
+'''
 @app.route('/api/taskTwo', methods = ["GET"])
 def taskTwoController():
     # second task
@@ -73,7 +90,12 @@ def taskTwoController():
         return makeZip(list({'augmentedRetentionDataFrame_' + filename}), 2)  
     # return "taskTwo completed"
 
+'''
+    in this task we take mean of all corresponding samples whos roundoff retention value is same
 
+    intput: file name as query parameter
+    returns: zipped excel files of the resultant dataframe
+'''
 @app.route('/api/taskThree', methods = ["GET"])
 def taskThreeController():
     # third task
@@ -107,11 +129,21 @@ def default():
     return "default behaviour"
 
 def find(name, path):
+    '''
+    finds if the given 'name' file exist in the path or not. 
+    intput: name of the file, path where it has to be searched
+    returns: Returns "" if no such file exist. Returns file path if present.
+    '''
     for root, dirs, files in os.walk(path):
         if name in files:
             return os.path.join(root, name)
     return "";
 def allowedExt(image):
+    '''
+    checks if . is present in the file name and if it is allowed by our business logic.
+    intput: file name 
+    returns: true if ext in image is correct and vice versa
+    '''
     if '.' not in image:
         return False
     ext = image.split('.')[-1];
@@ -119,6 +151,11 @@ def allowedExt(image):
         return False
     return True
 def getChildDataFrames(originalDf, filename):
+    '''
+     makes the required files and download them in local download directory
+     intput: dataframe required, filename given by user as query parameter
+     returns: nothing
+    '''
     filtered_pc_originalDf = originalDf[originalDf['Accepted Compound ID'].str.contains(".*[_ ]PC$", na = False)]
     filtered_lpc_originalDf = originalDf[originalDf['Accepted Compound ID'].str.contains(".*[_ ]LPC$", na = False)]
     filtered_plasmalogen_originalDf = originalDf[originalDf['Accepted Compound ID'].str.contains(".*[_ ]plasmalogen$", na = False)]
@@ -128,6 +165,11 @@ def getChildDataFrames(originalDf, filename):
     filtered_plasmalogen_originalDf.to_excel(os.path.join(app.config['FILE_DOWNLOAD'], 'plasmalogenDataFrame_' + filename), index = False)
     
 def makeZip(contentList, id):
+    '''
+    given list of files, zip them and send it back to frontend.
+    intput: list of files, id of task
+    returns: zipped file
+    '''
     name = "";
     if (id == 1):
         name = "taskOneResponse.zip"
@@ -147,6 +189,7 @@ def makeZip(contentList, id):
 
 
 if __name__ == "__main__":
+    # check if download and uploads folders are present or not
     if (not os.path.isdir(app.config['FILE_DOWNLOAD'])):
         os.mkdir(app.config['FILE_DOWNLOAD'])
 
